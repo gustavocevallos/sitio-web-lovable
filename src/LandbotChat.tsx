@@ -1,63 +1,52 @@
 import { useEffect } from 'react';
 
+// Declaramos la interfaz para que TypeScript sepa exactamente qué es Landbot
+declare global {
+  interface Window {
+    Landbot: any;
+  }
+}
+
 export default function LandbotChat() {
   useEffect(() => {
-    let myLandbotInstance: any = null;
-    let checkInterval: any = null;
-
-    // 1. Crear el elemento script de forma tradicional
+    // 1. Crear el elemento script clásico (no módulo) para evitar restricciones de importación
     const script = document.createElement('script');
-    script.type = 'module';
-    script.src = 'https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs';
+    script.src = 'https://cdn.landbot.io/landbot-3/landbot-3.0.0.js';
     script.async = true;
 
+    // 2. Ejecutar la inicialización SOLO cuando el script garantice que terminó de cargarse
     script.onload = () => {
-      // 2. Cuando el script cargue, revisamos periódicamente hasta que 'Landbot' exista en el objeto window
-      checkInterval = setInterval(() => {
-        const globalWindow = window as any;
-        
-        if (globalWindow.Landbot && globalWindow.Landbot.Container) {
-          // Detenemos el intervalo porque ya encontramos la librería
-          clearInterval(checkInterval);
-
-          const containerElement = document.querySelector('#myLandbot');
-          if (containerElement) {
-            myLandbotInstance = new globalWindow.Landbot.Container({
-              container: '#myLandbot',
-              configUrl: 'https://storage.googleapis.com/landbot.online/v3/H-3412687-R7QF0JBGNGWE21NU/index.json',
-            });
-          }
-        }
-      }, 50); // Revisa cada 50ms (es súper rápido)
+      if (window.Landbot && window.Landbot.Container) {
+        new window.Landbot.Container({
+          container: '#myLandbot',
+          configUrl: 'https://storage.googleapis.com/landbot.online/v3/H-3412687-R7QF0JBGNGWE21NU/index.json',
+        });
+      }
     };
 
-    script.onerror = (err) => {
-      console.error("Error al cargar el script de Landbot:", err);
+    script.onerror = () => {
+      console.error('No se pudo cargar el script de Landbot');
     };
 
     document.body.appendChild(script);
 
-    // Limpieza al desmontar el componente
+    // 3. Limpieza al desmontar el componente
     return () => {
-      if (checkInterval) clearInterval(checkInterval);
       if (document.body.contains(script)) {
         document.body.removeChild(script);
-      }
-      if (myLandbotInstance && typeof myLandbotInstance.destroy === 'function') {
-        myLandbotInstance.destroy();
       }
     };
   }, []);
 
   return (
-    <div 
-      id="myLandbot" 
-      style={{ 
-        width: '100%', 
+    <div
+      id="myLandbot"
+      style={{
+        width: '100%',
         height: '500px',
         minHeight: '500px',
-        backgroundColor: 'transparent'
-      }} 
+        backgroundColor: 'transparent',
+      }}
     />
   );
 }
