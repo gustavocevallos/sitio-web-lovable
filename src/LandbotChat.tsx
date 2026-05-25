@@ -2,36 +2,54 @@ import { useEffect } from 'react';
 
 export default function LandbotChat() {
   useEffect(() => {
-    // 1. Crear dinámicamente el script de Landbot
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = 'https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs';
-    script.async = true;
+    let myLandbotInstance: any = null;
 
-    script.onload = () => {
-      // 2. Inicializar Landbot una vez que el script se cargue
-      // @ts-ignore - Para que TypeScript no proteste por la variable global Landbot
-      if (window.Landbot) {
-        // @ts-ignore
-        new window.Landbot.Container({
-          container: '#myLandbot',
-          configUrl: 'https://storage.googleapis.com/landbot.online/v3/H-3412687-R7QF0JBGNGWE21NU/index.json',
-        });
+    const initLandbot = async () => {
+      try {
+        // 1. Importamos dinámicamente el módulo de Landbot
+        // Esto garantiza que el archivo .mjs se descargue y ejecute correctamente en Vite
+        await import('https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs' as any);
+
+        // 2. Esperamos un breve instante (un tick de reloj) para asegurar que el DOM y la variable global estén listos
+        setTimeout(() => {
+          // @ts-ignore
+          const LandbotGlobal = window.Landbot;
+
+          if (LandbotGlobal && document.querySelector('#myLandbot')) {
+            // @ts-ignore
+            myLandbotInstance = new LandbotGlobal.Container({
+              container: '#myLandbot',
+              configUrl: 'https://storage.googleapis.com/landbot.online/v3/H-3412687-R7QF0JBGNGWE21NU/index.json',
+            });
+          } else {
+            console.error("Landbot no se encontró en el objeto window o el contenedor #myLandbot no está en el DOM.");
+          }
+        }, 100);
+
+      } catch (error) {
+        console.error("Error al cargar el script de Landbot:", error);
       }
     };
 
-    document.body.appendChild(script);
+    initLandbot();
 
-    // Limpieza al desmontar el componente
+    // Limpieza al desmontar el componente para evitar duplicados en React
     return () => {
-      document.body.removeChild(script);
+      if (myLandbotInstance && typeof myLandbotInstance.destroy === 'function') {
+        myLandbotInstance.destroy();
+      }
     };
   }, []);
 
   return (
     <div 
       id="myLandbot" 
-      style={{ width: '100%', height: '500px', marginBottom: '20px' }} 
+      style={{ 
+        width: '100%', 
+        height: '500px', 
+        backgroundColor: '#f9f9f9', // Un fondo temporal para que veas si el contenedor se dibuja
+        border: '1px dashed #ccc'   // Una línea punteada para verificar visualmente el espacio
+      }} 
     />
   );
 }
