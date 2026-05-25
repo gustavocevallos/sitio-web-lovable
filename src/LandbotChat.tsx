@@ -3,38 +3,46 @@ import { useEffect } from 'react';
 export default function LandbotChat() {
   useEffect(() => {
     let myLandbotInstance: any = null;
+    let checkInterval: any = null;
 
-    const initLandbot = async () => {
-      try {
-        // 1. Importamos dinámicamente el módulo de Landbot
-        // Esto garantiza que el archivo .mjs se descargue y ejecute correctamente en Vite
-        await import('https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs' as any);
+    // 1. Crear el elemento script de forma tradicional
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = 'https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs';
+    script.async = true;
 
-        // 2. Esperamos un breve instante (un tick de reloj) para asegurar que el DOM y la variable global estén listos
-        setTimeout(() => {
-          // @ts-ignore
-          const LandbotGlobal = window.Landbot;
+    script.onload = () => {
+      // 2. Cuando el script cargue, revisamos periódicamente hasta que 'Landbot' exista en el objeto window
+      checkInterval = setInterval(() => {
+        const globalWindow = window as any;
+        
+        if (globalWindow.Landbot && globalWindow.Landbot.Container) {
+          // Detenemos el intervalo porque ya encontramos la librería
+          clearInterval(checkInterval);
 
-          if (LandbotGlobal && document.querySelector('#myLandbot')) {
-            // @ts-ignore
-            myLandbotInstance = new LandbotGlobal.Container({
+          const containerElement = document.querySelector('#myLandbot');
+          if (containerElement) {
+            myLandbotInstance = new globalWindow.Landbot.Container({
               container: '#myLandbot',
               configUrl: 'https://storage.googleapis.com/landbot.online/v3/H-3412687-R7QF0JBGNGWE21NU/index.json',
             });
-          } else {
-            console.error("Landbot no se encontró en el objeto window o el contenedor #myLandbot no está en el DOM.");
           }
-        }, 100);
-
-      } catch (error) {
-        console.error("Error al cargar el script de Landbot:", error);
-      }
+        }
+      }, 50); // Revisa cada 50ms (es súper rápido)
     };
 
-    initLandbot();
+    script.onerror = (err) => {
+      console.error("Error al cargar el script de Landbot:", err);
+    };
 
-    // Limpieza al desmontar el componente para evitar duplicados en React
+    document.body.appendChild(script);
+
+    // Limpieza al desmontar el componente
     return () => {
+      if (checkInterval) clearInterval(checkInterval);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
       if (myLandbotInstance && typeof myLandbotInstance.destroy === 'function') {
         myLandbotInstance.destroy();
       }
@@ -46,9 +54,9 @@ export default function LandbotChat() {
       id="myLandbot" 
       style={{ 
         width: '100%', 
-        height: '500px', 
-        backgroundColor: '#f9f9f9', // Un fondo temporal para que veas si el contenedor se dibuja
-        border: '1px dashed #ccc'   // Una línea punteada para verificar visualmente el espacio
+        height: '500px',
+        minHeight: '500px',
+        backgroundColor: 'transparent'
       }} 
     />
   );
