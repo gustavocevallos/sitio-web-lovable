@@ -5,6 +5,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import LandbotChat from './LandbotChat';
+
+function App() {
+  return (
+    <div>
+      {/* El resto de tu web de café */}
+      <LandbotChat />
+    </div>
+  );
+}
 
 const queryClient = new QueryClient();
 
